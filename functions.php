@@ -1,123 +1,207 @@
 <?php
 /**
- * 지원금 테마 Functions
+ * 지원금 테마 최종 통합본 (기능 보강 및 광고 규칙 적용)
  */
 
-// 테마 기본 설정
-function 지원금_테마_setup() {
-    // 타이틀 태그 지원
+if (!defined('SUPPORT_AI_API_KEY')) {
+    define('SUPPORT_AI_API_KEY', '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');
+}
+
+add_action('after_setup_theme', function() {
     add_theme_support('title-tag');
-    
-    // 피쳐드 이미지 지원
     add_theme_support('post-thumbnails');
+});
+
+// 2. 관리자 메뉴
+add_action('admin_menu', function() {
+    // 메인 메뉴
+    add_menu_page('지원금 관리', '지원금 관리', 'manage_options', 'sup-final-manager', 'sup_final_cards_page', 'dashicons-money-alt', 30);
     
-    // HTML5 지원
-    add_theme_support('html5', array('search-form', 'comment-form', 'comment-list', 'gallery', 'caption'));
-}
-add_action('after_setup_theme', '지원금_테마_setup');
+    // 서브 메뉴
+    add_submenu_page('sup-final-manager', '기본 설정', '기본 설정', 'manage_options', 'sup-final-basic', 'sup_final_basic_page'); // 사이트 이름 설정
+    add_submenu_page('sup-final-manager', '탭 설정', '탭 설정', 'manage_options', 'sup-final-tabs', 'sup_final_tabs_page');
+    add_submenu_page('sup-final-manager', '광고 설정', '광고 설정', 'manage_options', 'sup-final-ads', 'sup_final_ads_page');
+});
 
-// 스타일시트 로드
-function 지원금_테마_scripts() {
-    wp_enqueue_style('지원금-테마-style', get_stylesheet_uri());
+// 3. 광고 데이터 파싱 헬퍼 함수 (규칙 문서 적용)
+function sup_get_ad_config() {
+    $raw_code = stripslashes(get_option('sup_final_ad_code', ''));
+    $pub_id = '';
+    $slot_id = '';
+
+    if (!empty($raw_code)) {
+        // 정규식으로 data-ad-client (Pub ID) 추출
+        preg_match('/data-ad-client=["\']([^"\']+)["\']/', $raw_code, $client_matches);
+        if (isset($client_matches[1])) {
+            $pub_id = $client_matches[1];
+        }
+
+        // 정규식으로 data-ad-slot (Slot ID) 추출
+        preg_match('/data-ad-slot=["\']([^"\']+)["\']/', $raw_code, $slot_matches);
+        if (isset($slot_matches[1])) {
+            $slot_id = $slot_matches[1];
+        }
+    }
+
+    return [
+        'raw' => $raw_code,
+        'pub_id' => $pub_id,
+        'slot_id' => $slot_id,
+        'has_ad' => !empty($raw_code) && !empty($pub_id)
+    ];
+}
+
+// 4. AI 자동 입력 AJAX
+add_action('wp_ajax_sup_final_fetch', function() {
+    check_ajax_referer('sup_final_nonce', 'security');
+    $kw = sanitize_text_field($_POST['keyword']);
+    
+    $response = wp_remote_post('https://openrouter.ai/api/v1/chat/completions', [
+        'headers' => ['Authorization' => 'Bearer ' . SUPPORT_AI_API_KEY, 'Content-Type' => 'application/json'],
+        'body'    => json_encode([
+            'model' => 'openai/gpt-4o-mini',
+            'messages' => [['role' => 'user', 'content' => "정책 '{$kw}' 정보를 JSON으로 요약해줘. 필드: amount, amountSub, description, target, period. 한국어로."]],
+            'temperature' => 0.3
+        ]),
+        'timeout' => 15
+    ]);
+
+    if (is_wp_error($response)) wp_send_json_error();
+    $body = json_decode(wp_remote_retrieve_body($response), true);
+    // 마크다운 제거
+    $content = preg_replace('/```json\s*|\s*```/', '', $body['choices'][0]['message']['content']);
+    wp_send_json_success(json_decode($content, true));
+});
+
+// 5. 스타일 및 스크립트 로드
+function sup_final_styles() {
     wp_enqueue_style('google-fonts', 'https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap');
+    // style.css는 테마 루트에 있으므로 자동 로드됨
 }
-add_action('wp_enqueue_scripts', '지원금_테마_scripts');
+add_action('wp_enqueue_scripts', 'sup_final_styles');
 
-// ========== 카드 데이터 설정 ==========
-// 여기서 카드를 추가하거나 수정할 수 있습니다
-function get_support_cards() {
-    return array(
-        array(
-            'keyword' => '청년내일채움공제',
-            'amount' => '최대 3,000만원',
-            'amountSub' => '2년형 기준, 기업·정부 적립금 포함',
-            'description' => '중소기업 취업 청년에게 목돈 마련 기회를 제공하는 자산형성 지원제도',
-            'target' => '만 15~34세 중소기업 재직자',
-            'period' => '상시',
-            'link' => 'https://example.com', // 이 링크를 수정하세요
-            'featured' => true
-        ),
-        array(
-            'keyword' => '청년도약계좌',
-            'amount' => '최대 5,000만원',
-            'amountSub' => '5년 만기 시, 6%대 금리 적용',
-            'description' => '청년의 중장기 자산형성을 위한 정부기여금 지원 고금리 적금',
-            'target' => '만 19~34세 청년',
-            'period' => '2023년 6월~ (연중 상시)',
-            'link' => 'https://example.com', // 이 링크를 수정하세요
-            'featured' => false
-        ),
-        array(
-            'keyword' => '청년희망적금',
-            'amount' => '최대 840만원',
-            'amountSub' => '2년 만기 시, 정부 기여금 포함',
-            'description' => '저소득 청년의 자산형성을 돕는 우대금리 적금상품',
-            'target' => '만 19~34세 저소득 청년',
-            'period' => '2023년 종료 (신규가입 마감)',
-            'link' => 'https://example.com', // 이 링크를 수정하세요
-            'featured' => false
-        )
-    );
-}
 
-// ========== 탭 메뉴 설정 ==========
-// 여기서 탭 메뉴를 수정할 수 있습니다
-function get_tab_menu() {
-    return array(
-        array(
-            'name' => '청년지원금',
-            'link' => 'https://example.com',
-            'active' => true
-        ),
-        array(
-            'name' => '육아지원금',
-            'link' => 'https://example.com',
-            'active' => false
-        ),
-        array(
-            'name' => '창업지원금',
-            'link' => 'https://example.com',
-            'active' => false
-        )
-    );
-}
+// ================= 관리자 페이지 함수들 =================
 
-// ========== 사이트 설정 ==========
-function get_site_config() {
-    return array(
-        'site_title' => '지원금 스킨',
-        'default_link' => 'https://example.com',
-        'footer_brand' => '블로그(사업자)명',
-        'footer_address' => '사업자 주소:',
-        'footer_business_number' => '123-45-67890'
-    );
+// [A] 지원금 카드 관리
+function sup_final_cards_page() {
+    if (isset($_POST['save_sup_cards']) && check_admin_referer('sup_final_save')) {
+        update_option('sup_final_cards_data', $_POST['cards']);
+        echo '<div class="notice notice-success"><p>저장되었습니다.</p></div>';
+    }
+    $cards = get_option('sup_final_cards_data', []);
+    ?>
+    <div class="wrap">
+        <h1>지원금 카드 관리</h1>
+        <form method="post">
+            <?php wp_nonce_field('sup_final_save'); ?>
+            <div id="sup-final-container">
+                <?php foreach ($cards as $i => $c): ?>
+                <div class="sup-final-item" style="background:#fff; padding:20px; border:1px solid #ccc; margin-bottom:15px; border-radius:10px;">
+                    <input type="text" name="cards[<?php echo $i; ?>][keyword]" value="<?php echo esc_attr($c['keyword']); ?>" class="kw-in" style="width:70%; font-weight:bold;" placeholder="지원금 이름">
+                    <button type="button" class="ai-final-btn button button-primary">AI 자동채우기</button>
+                    <table class="form-table">
+                        <tr><th>금액</th><td><input type="text" name="cards[<?php echo $i; ?>][amount]" value="<?php echo esc_attr($c['amount']); ?>" class="in-amt" style="width:100%"></td></tr>
+                        <tr><th>부연설명</th><td><input type="text" name="cards[<?php echo $i; ?>][amountSub]" value="<?php echo esc_attr($c['amountSub']); ?>" style="width:100%"></td></tr>
+                        <tr><th>지원대상</th><td><input type="text" name="cards[<?php echo $i; ?>][target]" value="<?php echo esc_attr($c['target']); ?>" class="in-target" style="width:100%"></td></tr>
+                        <tr><th>신청시기</th><td><input type="text" name="cards[<?php echo $i; ?>][period]" value="<?php echo esc_attr($c['period']); ?>" class="in-period" style="width:100%"></td></tr>
+                        <tr><th>설명</th><td><textarea name="cards[<?php echo $i; ?>][description]" style="width:100%"><?php echo esc_textarea($c['description']); ?></textarea></td></tr>
+                        <tr><th>링크</th><td><input type="url" name="cards[<?php echo $i; ?>][link]" value="<?php echo esc_url($c['link']); ?>" style="width:100%"></td></tr>
+                    </table>
+                    <button type="button" onclick="this.parentElement.remove()" class="button">삭제</button>
+                </div>
+                <?php endforeach; ?>
+            </div>
+            <button type="button" id="add-final-card" class="button">➕ 카드 추가</button>
+            <input type="submit" name="save_sup_cards" class="button button-primary" value="💾 모든 카드 저장">
+        </form>
+    </div>
+    <script>
+    jQuery(document).ready(function($){
+        $(document).on('click', '.ai-final-btn', function(){
+            var btn = $(this); var p = btn.parent(); var kw = p.find('.kw-in').val();
+            if(!kw) return alert('이름을 입력하세요.');
+            btn.text('가져오는 중...');
+            $.post(ajaxurl, {action:'sup_final_fetch', keyword:kw, security:'<?php echo wp_create_nonce("sup_final_nonce"); ?>'}, function(res){
+                if(res.success){
+                    p.find('.in-amt').val(res.data.amount);
+                    p.find('.in-target').val(res.data.target);
+                    p.find('.in-period').val(res.data.period);
+                    p.find('textarea').val(res.data.description);
+                    p.find('.in-amt').next().val(res.data.amountSub); // amountSub 처리
+                }
+                btn.text('AI 자동채우기');
+            });
+        });
+        $('#add-final-card').click(function(){
+            var i = Date.now();
+            $('#sup-final-container').append('<div class="sup-final-item" style="background:#fff; padding:20px; border:1px solid #ccc; margin-bottom:15px; border-radius:10px;"><input type="text" name="cards['+i+'][keyword]" class="kw-in" style="width:70%;"> <button type="button" class="ai-final-btn button">AI</button><button type="button" onclick="this.parentElement.remove()" class="button">삭제</button></div>');
+        });
+    });
+    </script>
+    <?php
 }
 
-// ========== 새 카드 추가 가이드 ==========
-/*
-새로운 카드를 추가하려면 get_support_cards() 함수의 배열에 다음 형식으로 추가하세요:
+// [B] 기본 설정 (사이트 이름)
+function sup_final_basic_page() {
+    if (isset($_POST['save_basic'])) {
+        update_option('sup_final_site_title', sanitize_text_field($_POST['site_title']));
+        echo '<div class="notice notice-success"><p>기본 설정이 저장되었습니다.</p></div>';
+    }
+    $site_title = get_option('sup_final_site_title', get_bloginfo('name'));
+    ?>
+    <div class="wrap">
+        <h1>기본 설정</h1>
+        <form method="post">
+            <table class="form-table">
+                <tr>
+                    <th scope="row"><label for="site_title">사이트 이름 (헤더 표시)</label></th>
+                    <td>
+                        <input name="site_title" type="text" id="site_title" value="<?php echo esc_attr($site_title); ?>" class="regular-text">
+                        <p class="description">헤더와 타이틀바에 표시될 사이트 이름을 입력하세요.</p>
+                    </td>
+                </tr>
+            </table>
+            <input type="submit" name="save_basic" class="button button-primary" value="저장">
+        </form>
+    </div>
+    <?php
+}
 
-array(
-    'keyword' => '지원금명',
-    'amount' => '최대 금액',
-    'amountSub' => '부가 설명',
-    'description' => '한 줄 설명',
-    'target' => '지원대상 (20자 이내)',
-    'period' => '신청시기',
-    'link' => '신청 링크',
-    'featured' => false // 첫 번째 카드만 true
-),
+// [C] 탭 설정
+function sup_final_tabs_page() {
+    if (isset($_POST['save_tabs'])) {
+        update_option('sup_final_tabs_data', $_POST['tabs']);
+        echo '<div class="notice notice-success"><p>탭 설정이 저장되었습니다.</p></div>';
+    }
+    $tabs = array_slice(array_merge(get_option('sup_final_tabs_data', []), array_fill(0, 3, ['name'=>'', 'link'=>''])), 0, 3);
+    ?>
+    <div class="wrap"><h1>탭 메뉴 설정 (3개)</h1><form method="post"><table class="widefat">
+        <?php for($i=0; $i<3; $i++): ?>
+        <tr><td><input type="text" name="tabs[<?php echo $i; ?>][name]" value="<?php echo esc_attr($tabs[$i]['name']); ?>" placeholder="탭 이름"></td>
+        <td><input type="url" name="tabs[<?php echo $i; ?>][link]" value="<?php echo esc_url($tabs[$i]['link']); ?>" placeholder="링크 URL"></td></tr>
+        <?php endfor; ?>
+    </table><input type="submit" name="save_tabs" class="button button-primary" value="저장"></form></div>
+    <?php
+}
 
-예시:
-array(
-    'keyword' => '청년월세지원',
-    'amount' => '월 최대 20만원',
-    'amountSub' => '최대 12개월 지원',
-    'description' => '청년의 주거비 부담을 덜어주는 월세 지원 제도',
-    'target' => '만 19~34세 청년',
-    'period' => '상시',
-    'link' => 'https://example.com/apply',
-    'featured' => false
-),
-*/
+// [D] 광고 설정
+function sup_final_ads_page() {
+    if (isset($_POST['save_ads'])) {
+        // stripslashes를 사용하여 따옴표 이스케이프 문제 해결
+        update_option('sup_final_ad_code', stripslashes($_POST['ad_code']));
+        echo '<div class="notice notice-success"><p>광고 코드가 저장되었습니다.</p></div>';
+    }
+    $ad_code = get_option('sup_final_ad_code', '');
+    ?>
+    <div class="wrap">
+        <h1>광고 설정 (애드센스)</h1>
+        <p>애드센스에서 발급받은 전체 코드를 아래에 입력하세요. 시스템이 자동으로 ID를 추출하여 적절한 위치에 배치합니다.</p>
+        <form method="post">
+            <textarea name="ad_code" style="width:100%; height:200px; font-family:monospace;" placeholder="<script...></script> <ins...></ins> ..."><?php echo esc_textarea($ad_code); ?></textarea>
+            <input type="submit" name="save_ads" class="button button-primary" value="광고 코드 저장">
+        </form>
+    </div>
+    <?php
+}
 ?>
