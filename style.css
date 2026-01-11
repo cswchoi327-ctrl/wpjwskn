@@ -417,4 +417,40 @@ body {
         flex-direction: column;
         text-align: center;
     }
+/* ... (기존 스타일 상단 생략) ... */
+
+/* ========== 광고 카드 스타일 (규칙 문서 적용) ========== */
+.ad-card {
+    background: #ffffff;
+    border-radius: 20px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+    border: 1px solid rgba(0, 0, 0, 0.04);
+    padding: 16px;
+    margin: 24px 0;
+    text-align: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden; /* 광고가 튀어나가는 것 방지 */
+}
+
+/* 모바일 반응형 */
+@media screen and (max-width: 768px) {
+    .ad-card {
+        background: transparent;
+        border-radius: 0;
+        box-shadow: none;
+        border: none;
+        padding: 0;
+        margin: 16px 0;
+    }
+    
+    /* 기존 스타일 대응 */
+    .info-card-grid {
+        grid-template-columns: 1fr;
+    }
+    .footer-content {
+        flex-direction: column;
+        text-align: center;
+    }
 }
