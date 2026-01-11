@@ -1,0 +1,123 @@
+<?php
+/**
+ * 지원금 테마 Functions
+ */
+
+// 테마 기본 설정
+function 지원금_테마_setup() {
+    // 타이틀 태그 지원
+    add_theme_support('title-tag');
+    
+    // 피쳐드 이미지 지원
+    add_theme_support('post-thumbnails');
+    
+    // HTML5 지원
+    add_theme_support('html5', array('search-form', 'comment-form', 'comment-list', 'gallery', 'caption'));
+}
+add_action('after_setup_theme', '지원금_테마_setup');
+
+// 스타일시트 로드
+function 지원금_테마_scripts() {
+    wp_enqueue_style('지원금-테마-style', get_stylesheet_uri());
+    wp_enqueue_style('google-fonts', 'https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap');
+}
+add_action('wp_enqueue_scripts', '지원금_테마_scripts');
+
+// ========== 카드 데이터 설정 ==========
+// 여기서 카드를 추가하거나 수정할 수 있습니다
+function get_support_cards() {
+    return array(
+        array(
+            'keyword' => '청년내일채움공제',
+            'amount' => '최대 3,000만원',
+            'amountSub' => '2년형 기준, 기업·정부 적립금 포함',
+            'description' => '중소기업 취업 청년에게 목돈 마련 기회를 제공하는 자산형성 지원제도',
+            'target' => '만 15~34세 중소기업 재직자',
+            'period' => '상시',
+            'link' => 'https://example.com', // 이 링크를 수정하세요
+            'featured' => true
+        ),
+        array(
+            'keyword' => '청년도약계좌',
+            'amount' => '최대 5,000만원',
+            'amountSub' => '5년 만기 시, 6%대 금리 적용',
+            'description' => '청년의 중장기 자산형성을 위한 정부기여금 지원 고금리 적금',
+            'target' => '만 19~34세 청년',
+            'period' => '2023년 6월~ (연중 상시)',
+            'link' => 'https://example.com', // 이 링크를 수정하세요
+            'featured' => false
+        ),
+        array(
+            'keyword' => '청년희망적금',
+            'amount' => '최대 840만원',
+            'amountSub' => '2년 만기 시, 정부 기여금 포함',
+            'description' => '저소득 청년의 자산형성을 돕는 우대금리 적금상품',
+            'target' => '만 19~34세 저소득 청년',
+            'period' => '2023년 종료 (신규가입 마감)',
+            'link' => 'https://example.com', // 이 링크를 수정하세요
+            'featured' => false
+        )
+    );
+}
+
+// ========== 탭 메뉴 설정 ==========
+// 여기서 탭 메뉴를 수정할 수 있습니다
+function get_tab_menu() {
+    return array(
+        array(
+            'name' => '청년지원금',
+            'link' => 'https://example.com',
+            'active' => true
+        ),
+        array(
+            'name' => '육아지원금',
+            'link' => 'https://example.com',
+            'active' => false
+        ),
+        array(
+            'name' => '창업지원금',
+            'link' => 'https://example.com',
+            'active' => false
+        )
+    );
+}
+
+// ========== 사이트 설정 ==========
+function get_site_config() {
+    return array(
+        'site_title' => '지원금 스킨',
+        'default_link' => 'https://example.com',
+        'footer_brand' => '블로그(사업자)명',
+        'footer_address' => '사업자 주소:',
+        'footer_business_number' => '123-45-67890'
+    );
+}
+
+// ========== 새 카드 추가 가이드 ==========
+/*
+새로운 카드를 추가하려면 get_support_cards() 함수의 배열에 다음 형식으로 추가하세요:
+
+array(
+    'keyword' => '지원금명',
+    'amount' => '최대 금액',
+    'amountSub' => '부가 설명',
+    'description' => '한 줄 설명',
+    'target' => '지원대상 (20자 이내)',
+    'period' => '신청시기',
+    'link' => '신청 링크',
+    'featured' => false // 첫 번째 카드만 true
+),
+
+예시:
+array(
+    'keyword' => '청년월세지원',
+    'amount' => '월 최대 20만원',
+    'amountSub' => '최대 12개월 지원',
+    'description' => '청년의 주거비 부담을 덜어주는 월세 지원 제도',
+    'target' => '만 19~34세 청년',
+    'period' => '상시',
+    'link' => 'https://example.com/apply',
+    'featured' => false
+),
+*/
+?>
