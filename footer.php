@@ -1,20 +1,21 @@
 <?php
 /**
  * Footer Template
- * Compatible with custom functions.php
  */
 ?>
     </div><footer class="footer">
-        <div class="container footer-content">
+        <div class="footer-content">
             <div class="footer-left">
-                <div class="footer-brand"><?php bloginfo('name'); ?></div>
+                <div class="footer-brand"><?php echo esc_html(get_bloginfo('name')); ?></div>
                 <ul class="footer-info">
-                    <li>정부 지원금 정보를 알기 쉽게 요약하여 제공합니다.</li>
-                    <li>본 사이트는 정부 기관을 사칭하지 않으며, 정보 제공을 목적으로 합니다.</li>
+                    <li>📍 대한민국 서울특별시</li>
+                    <li>🏢 정부지원금 알리미 서비스</li>
                 </ul>
             </div>
             <div class="footer-right">
-                <p class="footer-copyright">Copyright © <?php echo date('Y'); ?> All Rights Reserved.</p>
+                <p>제작자 : 아로스</p>
+                <p>홈페이지 : <a href="https://aros100.com" target="_blank">바로가기</a></p>
+                <p class="footer-copyright">Copyrights © <?php echo date('Y'); ?> All Rights Reserved.</p>
             </div>
         </div>
     </footer>
